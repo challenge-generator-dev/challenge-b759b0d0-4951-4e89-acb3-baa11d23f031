@@ -1,0 +1,532 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Order CRUD API",
+    "description": "API REST para gestión de órdenes sobre DynamoDB. Permite crear, leer, actualizar y eliminar órdenes con validación de entradas y manejo de errores robusto.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support",
+      "email": "support@example.com"
+    },
+    "license": {
+      "name": "ISC",
+      "url": "https://opensource.org/licenses/ISC"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Servidor de desarrollo"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Orders",
+      "description": "Operaciones CRUD para la gestión de órdenes"
+    }
+  ],
+  "paths": {
+    "/orders": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Listar todas las órdenes",
+        "description": "Obtiene una lista de todas las órdenes almacenadas en DynamoDB. Soporta paginación mediante parámetros de query.",
+        "operationId": "listOrders",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Número de página para paginación (comienza en 1)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Cantidad de elementos por página",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filtrar órdenes por estado",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de órdenes obtenida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderListResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Crear una nueva orden",
+        "description": "Crea una nueva orden en DynamoDB. El identificador único se genera automáticamente.",
+        "operationId": "createOrder",
+        "requestBody": {
+          "description": "Datos de la orden a crear",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Orden creada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida - datos de entrada inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{id}": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Obtener una orden por ID",
+        "description": "Recupera los detalles de una orden específica usando su identificador único.",
+        "operationId": "getOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único de la orden",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Orden encontrada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Orden no encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Orders"],
+        "summary": "Actualizar una orden",
+        "description": "Actualiza los datos de una orden existente. Se pueden actualizar la descripción y/o el estado.",
+        "operationId": "updateOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único de la orden",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Datos de la orden a actualizar",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Orden actualizada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida - datos de entrada inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Orden no encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Orders"],
+        "summary": "Eliminar una orden",
+        "description": "Elimina una orden existente de DynamoDB usando su identificador único.",
+        "operationId": "deleteOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Identificador único de la orden",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Orden eliminada exitosamente"
+          },
+          "404": {
+            "description": "Orden no encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error interno del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "OrderStatus": {
+        "type": "string",
+        "enum": ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"],
+        "description": "Estado de la orden"
+      },
+      "CreateOrderDto": {
+        "type": "object",
+        "required": ["description"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500,
+            "description": "Descripción de la orden"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatus",
+            "description": "Estado de la orden (opcional, por defecto PENDING)",
+            "default": "PENDING"
+          }
+        },
+        "example": {
+          "description": "Orden de compra de materiales",
+          "status": "PENDING"
+        }
+      },
+      "UpdateOrderDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 5500,
+            "description": "Nueva descripción de la orden"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatus",
+            "description": "Nuevo estado de la orden"
+          }
+        },
+        "example": {
+          "description": "Orden de compra actualizada",
+          "status": "IN_PROGRESS"
+        }
+      },
+      "OrderResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identificador único de la orden"
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción de la orden"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatus",
+            "description": "Estado actual de la orden"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de creación de la orden"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de última actualización de la orden"
+          }
+        },
+        "example": {
+          "id": "550e8400-e29b-41d4-a716-446655440000",
+          "description": "Orden de compra de materiales",
+          "status": "PENDING",
+          "createdAt": "2024-01-15T10:30:00.000Z",
+          "updatedAt": "2024-01-15T10:30:00.000Z"
+        }
+      },
+      "OrderListResponse": {
+        "type": "object",
+        "properties": {
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderResponse"
+            },
+            "description": "Lista de órdenes"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total de órdenes disponibles"
+          },
+          "page": {
+            "type": "integer",
+            "description": "Página actual"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Límite de elementos por página"
+          }
+        },
+        "example": {
+          "orders": [
+            {
+              "id": "550e8400-e29b-41d4-a716-446655440000",
+              "description": "Orden de compra de materiales",
+              "status": "PENDING",
+              "createdAt": "2024-01-15T10:30:00.000Z",
+              "updatedAt": "2024-01-15T10:30:00.000Z"
+            }
+          ],
+          "total": 1,
+          "page": 1,
+          "limit": 10
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "integer",
+            "description": "Código de estado HTTP"
+          },
+          "message": {
+            "type": "string",
+            "description": "Mensaje de error"
+          },
+          "error": {
+            "type": "string",
+            "description": "Tipo de error"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Marca de tiempo del error"
+          },
+          "path": {
+            "type": "string",
+            "description": "Ruta de la solicitud que causó el error"
+          }
+        },
+        "example": {
+          "statusCode": 404,
+          "message": "Orden no encontrada",
+          "error": "Not Found",
+          "timestamp": "2024-01-15T10:30:00.000Z",
+          "path": "/orders/550e8400-e29b-41d4-a716-446655440000"
+        }
+      },
+      "ValidationErrorResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "integer",
+            "description": "Código de estado HTTP"
+          },
+          "message": {
+            "type": "string",
+            "description": "Mensaje de error de validación"
+          },
+          "error": {
+            "type": "string",
+            "description": "Tipo de error"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Marca de tiempo del error"
+          },
+          "path": {
+            "type": "string",
+            "description": "Ruta de la solicitud que causó el error"
+          },
+          "validationErrors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Lista de errores de validación"
+          }
+        },
+        "example": {
+          "statusCode": 400,
+          "message": "Error de validación",
+          "error": "Bad Request",
+          "timestamp": "2024-01-15T10:30:00.000Z",
+          "path": "/orders",
+          "validationErrors": [
+            {
+              "field": "description",
+              "message": "La descripción debe tener al menos 3 caracteres"
+            }
+          ]
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token de autenticación JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}
